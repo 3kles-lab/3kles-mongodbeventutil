@@ -1,0 +1,61 @@
+{
+  "name": "@3kles/3kles-mongodbeventutil",
+  "version": "1.0.0",
+  "description": "3KLES MongoDB Util",
+  "main": "dist/index.mongodb.js",
+  "typings": "dist/index.mongodb.d.ts",
+  "repository": {
+    "type": "git",
+    "url": "http://gitlab.3kles.local/3kles/lib/corejs/3kles-mongodbeventutil.git"
+  },
+  "keywords": [],
+  "author": "Jeremy Chaut",
+  "license": "ISC",
+  "bugs": {
+    "url": "http://gitlab.3kles.local/3kles/lib/corejs/3kles-mongodbeventutil/issues"
+  },
+  "homepage": "http://gitlab.3kles.local/3kles/lib/corejs/3kles-mongodbeventutil",
+  "scripts": {
+    "dev": "node -r ts-node/register test/app.ts",
+    "test": "gulp test",
+    "build": "gulp transpile"
+  },
+  "dependencies": {
+    "@3kles/3kles-amqpbroker": "^1.5.1",
+    "@3kles/3kles-coremongodb": "^1.6.0",
+    "mongoose": "^6.9.1"
+  },
+  "devDependencies": {
+    "@babel/core": "^7.20.12",
+    "@types/express": "^4.17.21",
+    "@types/luxon": "^3.4.2",
+    "@types/node": "^18.8.2",
+    "babel-preset-env": "^1.7.0",
+    "babelify": "^10.0.0",
+    "browserify": "^17.0.0",
+    "chai": "^4.3.7",
+    "event-stream": "^4.0.1",
+    "gulp": "^4.0.2",
+    "gulp-clean": "^0.4.0",
+    "gulp-cli": "^2.3.0",
+    "gulp-concat": "^2.6.1",
+    "gulp-exec": "^5.0.0",
+    "gulp-foreach": "^0.1.0",
+    "gulp-mocha": "^8.0.0",
+    "gulp-rename": "^2.0.0",
+    "gulp-sourcemaps": "^3.0.0",
+    "gulp-tap": "^2.0.0",
+    "gulp-terser": "^2.0.1",
+    "gulp-typescript": "^6.0.0-alpha.1",
+    "gulp-use-tsconfig": "1.5.3",
+    "gulp-util": "^3.0.8",
+    "mocha": "^9.1.0",
+    "prettier": "^3.2.4",
+    "run-sequence": "^2.2.1",
+    "ts-node": "^10.9.2",
+    "tslint": "^6.1.3",
+    "typescript": "^4.9.5",
+    "vinyl-buffer": "^1.0.1",
+    "vinyl-source-stream": "^2.0.0"
+  }
+}
