@@ -11,7 +11,7 @@ export class MongoDBSelectionService extends MongoDBService {
 		public type: string,
 		public defaultSort: string,
 		public messageEvent: GenericCRUDEvent,
-		public parentField?: string) {
+		public parentKey?: string) {
 		super(model);
 	}
 
@@ -102,7 +102,7 @@ export class MongoDBSelectionService extends MongoDBService {
 	}
 
 	public async select(data: any): Promise<any> {
-		return await CRUDSelectionUtil.select(data, this.model, this.selectionModel, this.type);
+		return await CRUDSelectionUtil.select(data, this.model, this.selectionModel, this.type, this.parentKey);
 	}
 
 	public async selectAll(data: any): Promise<any> {
