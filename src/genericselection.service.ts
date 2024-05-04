@@ -26,6 +26,8 @@ export class MongoDBSelectionService extends MongoDBService {
 					return await this.select(data);
 				case 'clearSelection':
 					return await this.clearSelection(data);
+				case 'deleteSelection':
+					return await this.deleteSelection(data);
 			}
 			return super.execute(type, data);
 		} catch (e) {
@@ -68,6 +70,16 @@ export class MongoDBSelectionService extends MongoDBService {
 		}
 	}
 
+	public async add(inputRequest: any): Promise<any> {
+        try {
+            const createData = await super.add(inputRequest);
+            this.messageEvent.create(createData?.data);
+            return createData;
+        } catch (err) {
+            throw err;
+        }
+    }
+
 	public async update(inputRequest: any): Promise<any> {
 		await super.update(inputRequest);
 		const updateData = await this.model.findOne({ _id: inputRequest.params.id }).lean();
@@ -76,10 +88,33 @@ export class MongoDBSelectionService extends MongoDBService {
 	}
 
 	public async delete(inputRequest: any): Promise<any> {
-		const data = await super.delete(inputRequest);
-		await CRUDSelectionUtil.clearSelection(inputRequest?.query?.user, this.selectionModel, this.type);
-		return { data };
-	}
+        try {
+            const dataToDelete = await this.model.findOne({ _id: inputRequest.params.id }).lean();
+            const deleteData = await super.delete(inputRequest);
+            await CRUDSelectionUtil.clearSelection(inputRequest?.query?.user, this.selectionModel, this.type);
+            await this.messageEvent.delete(dataToDelete);
+            return deleteData;
+        } catch (err) {
+            throw err;
+        }
+    }
+
+	public async deleteSelection(inputRequest: any): Promise<any> {
+        try {
+            const selectedData = await this.getSelected(inputRequest);
+            const listData = selectedData?.data;
+            await Promise.all(
+                listData.map(async (line: any) => {
+                    await this.model.deleteOne({ _id: line?._id });
+                    await this.messageEvent.delete(line);
+                })
+            );
+            await CRUDSelectionUtil.clearSelection(inputRequest?.query?.user, this.selectionModel, this.type);
+            return selectedData;
+        } catch (err) {
+            throw err;
+        }
+    }
 
 	public async getSelected(inputRequest: any): Promise<any> {
 		try {
