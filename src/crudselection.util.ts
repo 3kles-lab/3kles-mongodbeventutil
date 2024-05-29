@@ -35,9 +35,18 @@ export class CRUDSelectionUtil extends CRUDUtil {
 			if (userSelectLine) {
 				await selectionModel.deleteOne({ _id: userSelectLine._id });
 				if (parentKey) {
+					// check if has children (line is a parent)
+					if (await model.countDocuments({ [parentKey]: line._id })) {
+						const listBulkChildren = (await CRUDSelectionUtil.deleteChildrenSelection(model, line, user, parentKey)).flat();
+						children = children.concat(listBulkChildren.map((m) => ({
+							_id: m.deleteOne?.filter?.selection,
+							selected: false
+						})));
+						await selectionModel.bulkWrite(listBulkChildren);
+					}
 					// If is child (has parent)
 					if (line[parentKey]) {
-						const listBulkParent = await CRUDSelectionUtil.createParentSelection(model, selectionModel, type, line, user);
+						const listBulkParent = await CRUDSelectionUtil.deleteParentSelection(model, selectionModel, type, line, user, parentKey);
 						children = children.concat(listBulkParent.map((m) => ({
 							_id: (m.updateOne) ? m.updateOne?.update.$set?.selection : m.deleteOne?.filter?.selection,
 							selected: false,
@@ -45,27 +54,18 @@ export class CRUDSelectionUtil extends CRUDUtil {
 						})));
 						await selectionModel.bulkWrite(listBulkParent);
 					}
-
-					// check if has children (line is a parent)
-					if (await model.countDocuments({ [parentKey]: line._id })) {
-						const listBulkChildren = (await CRUDSelectionUtil.deleteChildrenSelection(model, line, user)).flat();
-						children = children.concat(listBulkChildren.map((m) => ({
-							_id: m.deleteOne?.filter?.selection,
-							selected: false
-						})));
-						await selectionModel.bulkWrite(listBulkChildren);
-					}
 				}
 			} else {
 				await selectionModel.create({
 					type,
 					selection: line._id,
+					[parentKey]: line?.[parentKey],
 					user
 				});
 				if (parentKey) {
 					// If is child (has parent)
 					if (line[parentKey]) {
-						const listBulkParent = await CRUDSelectionUtil.createParentSelection(model, selectionModel, type, line, user);
+						const listBulkParent = await CRUDSelectionUtil.createParentSelection(model, selectionModel, type, line, user, parentKey);
 						children = children.concat(listBulkParent.map((m) => ({
 							_id: m.updateOne?.update.$set?.selection,
 							selected: true,
@@ -75,7 +75,7 @@ export class CRUDSelectionUtil extends CRUDUtil {
 					}
 					// check if has children (line is a parent)
 					if (await model.countDocuments({ [parentKey]: line._id })) {
-						const listBulkChildren = (await CRUDSelectionUtil.createChildrenSelection(model, selectionModel, type, line, user)).flat();
+						const listBulkChildren = (await CRUDSelectionUtil.createChildrenSelection(model, selectionModel, type, line, user, parentKey)).flat();
 						children = children.concat(listBulkChildren.map((m) => ({
 							_id: m.updateOne?.update.$set?.selection,
 							selected: true,
@@ -162,13 +162,14 @@ export class CRUDSelectionUtil extends CRUDUtil {
 
 	/** Children selection */
 	public static async createParentSelection(model: mongoose.Model<any>, selectionModel: mongoose.Model<any>, type: string,
-		line: any, user: any, list?: any[]): Promise<any[]> {
+		line: any, user: any, parentKey: string, list?: any[], forceIndeterminate?: boolean): Promise<any[]> {
 		if (!list) { list = []; }
-		const parentLine = await model.findById(line.parent).lean();
+		const parentLine = await model.findById(line[parentKey]).lean<any>();
 		// check if parentLine has another child not selected (indeterminate)
-		const listOtherChildren = await model.find({ parent: line.parent, _id: { $ne: line?._id } });
-		const indeterminate = await selectionModel.find({ selection: { $in: listOtherChildren.map((m) => m._id) } });
+		const listOtherChildren = await model.find({ [parentKey]: line[parentKey], _id: { $ne: line?._id } }).lean<any[]>();
+		const listOtherChildrenSelected = await selectionModel.find({ [parentKey]: line[parentKey], selection: { $in: listOtherChildren.map((m) => m._id) } }).lean<any[]>();
 		if (parentLine) {
+			const indeterminate = !!(listOtherChildren.length !== listOtherChildrenSelected.length) || forceIndeterminate;
 			list.push(
 				{
 					updateOne: {
@@ -176,7 +177,8 @@ export class CRUDSelectionUtil extends CRUDUtil {
 						update: {
 							$set: {
 								selection: parentLine._id,
-								indeterminate: !!(listOtherChildren.length !== indeterminate.length),
+								[parentKey]: parentLine?.[parentKey],
+								indeterminate,
 								user,
 								type
 							}
@@ -185,14 +187,15 @@ export class CRUDSelectionUtil extends CRUDUtil {
 					},
 				}
 			);
-			return await CRUDSelectionUtil.createParentSelection(model, selectionModel, type, parentLine, user, list);
+			return await CRUDSelectionUtil.createParentSelection(model, selectionModel, type, parentLine, user, parentKey, list, indeterminate);
 		}
 		return list;
 	}
 
-	public static async createChildrenSelection(model: mongoose.Model<any>, selectionModel: mongoose.Model<any>, type: string, line: any, user: any, list?: any[]): Promise<any[]> {
+	public static async createChildrenSelection(model: mongoose.Model<any>, selectionModel: mongoose.Model<any>, type: string,
+		line: any, user: any, parentKey: string, list?: any[]): Promise<any[]> {
 		if (!list) { list = []; }
-		const childrenLines = await model.find({ parent: line._id }).lean();
+		const childrenLines = await model.find({ [parentKey]: line._id }).lean();
 		if (childrenLines.length) {
 			await Promise.all(
 				childrenLines.map(async (children) => {
@@ -202,6 +205,7 @@ export class CRUDSelectionUtil extends CRUDUtil {
 							update: {
 								$set: {
 									selection: children._id,
+									[parentKey]: children[parentKey],
 									user,
 									type
 								}
@@ -209,7 +213,7 @@ export class CRUDSelectionUtil extends CRUDUtil {
 							upsert: true,
 						},
 					});
-					return CRUDSelectionUtil.createChildrenSelection(model, selectionModel, type, children, user, list);
+					return CRUDSelectionUtil.createChildrenSelection(model, selectionModel, type, children, user, parentKey, list);
 				})
 			);
 		}
@@ -217,14 +221,21 @@ export class CRUDSelectionUtil extends CRUDUtil {
 	}
 
 	/** Unselect parent */
-	public static async deleteParentSelection(model: mongoose.Model<any>, selectionModel: mongoose.Model<any>, type: string, line: any, user: any, list?: any[]): Promise<any[]> {
+	public static async deleteParentSelection(model: mongoose.Model<any>, selectionModel: mongoose.Model<any>, type: string,
+		line: any, user: any, parentKey: string, list?: any[], forceIndeterminate?: boolean): Promise<any[]> {
 		if (!list) { list = []; }
-		const parentLine = await model.findById(line.parent).lean();
-		// check if parentLine has another child not selected (indeterminate)
-		const listOtherChildren = await model.find({ parent: line.parent, _id: { $ne: line?._id } });
-		const indeterminate = !!await selectionModel.countDocuments({ selection: { $nin: listOtherChildren.map((m) => m._id) } });
+		const parentLine = await model.findById(line[parentKey]).lean<any>();
+
 		if (parentLine) {
-			if (listOtherChildren.length) {
+			// check if parentLine has another child not selected (indeterminate)
+			const listOtherChildren = await model.find({ [parentKey]: line[parentKey], _id: { $ne: line?._id } }).lean<any[]>();
+			const countOtherChildrenSelected = !!await selectionModel.countDocuments({
+				[parentKey]: line[parentKey],
+				selection: { $in: listOtherChildren.map((m) => m._id) }
+			}).lean<any[]>();
+			const indeterminate = (!!countOtherChildrenSelected || forceIndeterminate);
+
+			if (countOtherChildrenSelected || forceIndeterminate) {
 				list.push(
 					{
 						updateOne: {
@@ -232,6 +243,7 @@ export class CRUDSelectionUtil extends CRUDUtil {
 							update: {
 								$set: {
 									selection: parentLine._id,
+									[parentKey]: parentLine[parentKey],
 									indeterminate,
 									user,
 									type
@@ -250,16 +262,16 @@ export class CRUDSelectionUtil extends CRUDUtil {
 					}
 				);
 			}
-			return await CRUDSelectionUtil.deleteParentSelection(model, selectionModel, type, parentLine, user, list);
+			return await CRUDSelectionUtil.deleteParentSelection(model, selectionModel, type, parentLine, user, parentKey, list, indeterminate);
 		}
 		return list;
 	}
 
 
 	/** Unselect children */
-	public static async deleteChildrenSelection(model: mongoose.Model<any>, line: any, user: any, list?: any[]): Promise<any[]> {
+	public static async deleteChildrenSelection(model: mongoose.Model<any>, line: any, user: any, parentKey: string, list?: any[]): Promise<any[]> {
 		if (!list) { list = []; }
-		const childrenLines = await model.find({ parent: line._id }).lean();
+		const childrenLines = await model.find({ [parentKey]: line._id }).lean();
 		if (childrenLines.length) {
 			await Promise.all(
 				childrenLines.map(async (children) => {
@@ -268,7 +280,7 @@ export class CRUDSelectionUtil extends CRUDUtil {
 							filter: { selection: children._id }
 						},
 					});
-					return CRUDSelectionUtil.deleteChildrenSelection(model, children, user, list);
+					return CRUDSelectionUtil.deleteChildrenSelection(model, children, user, parentKey, list);
 				})
 			);
 		}
