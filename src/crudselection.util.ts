@@ -21,6 +21,53 @@ export class CRUDSelectionUtil extends CRUDUtil {
 		return router;
 	}
 
+	public static generate(route: string, hostname: string, port: number, path: string, headerKeys?: string[], middlewares?: any[]): { [key: string]: any; } {
+		route += route.endsWith("/") ? "" : "/";
+		const option = {
+			hostname,
+			port,
+			headers: {
+				'Content-Type': 'application/json',
+			}
+		};
+		return {
+			...CRUDUtil.generate(route, hostname, port, path, headerKeys, middlewares),
+			select: {
+				method: 'PUT',
+				path: ':id/select',
+				headerKeys: headerKeys || [],
+				option: {
+					path: path + '/:id/select',
+					method: 'PUT',
+					...option
+				},
+				middlewares: middlewares || []
+			},
+			selectAll: {
+				method: 'PUT',
+				path: route + 'selectAll',
+				headerKeys: headerKeys || [],
+				option: {
+					path: path + '/selectAll',
+					method: 'PUT',
+					...option
+				},
+				middlewares: middlewares || []
+			},
+			clearSelection: {
+				method: 'PUT',
+				path: route + 'clearSelection',
+				headerKeys: headerKeys || [],
+				option: {
+					path: path + '/clearSelection',
+					method: 'PUT',
+					...option
+				},
+				middlewares: middlewares || []
+			}
+		};
+	}
+
 	public static async select(inputRequest: any, model: mongoose.Model<any>, selectionModel: mongoose.Model<any>, type: string, parentKey?: string): Promise<any> {
 		try {
 			const user = inputRequest.body?.user;
