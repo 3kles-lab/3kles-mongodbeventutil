@@ -12,7 +12,7 @@ export class DBUtils {
 					// if (DateTime.fromISO(filter[key]).isValid && +filter[key]?.length >= 8) {
 					//     return { [key]: { $gte: DateTime.fromISO(filter[key]).toJSDate(), $lt: DateTime.fromISO(filter[key]).plus({ days: 1 }).toJSDate() } };
 					// }
-					if (mongoose.isValidObjectId(filter[key])) {
+					if (mongoose.isObjectIdOrHexString(filter[key])) {
 						return { [key]: new mongoose.Types.ObjectId(filter[key]) };
 					}
 					return { [key]: { $regex: filter[key], $options: "i" } };
