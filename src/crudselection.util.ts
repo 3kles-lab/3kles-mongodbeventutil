@@ -32,6 +32,17 @@ export class CRUDSelectionUtil extends CRUDUtil {
 		};
 		return {
 			...CRUDUtil.generate(route, hostname, port, path, headerKeys, middlewares),
+			getSelected: {
+				method: 'GET',
+				path: 'getSelected',
+				headerKeys: headerKeys || [],
+				option: {
+					path: path + '/getSelected',
+					method: 'GET',
+					...option
+				},
+				middlewares: middlewares || []
+			},
 			select: {
 				method: 'PUT',
 				path: ':id/select',
@@ -61,6 +72,17 @@ export class CRUDSelectionUtil extends CRUDUtil {
 				option: {
 					path: path + '/clearSelection',
 					method: 'PUT',
+					...option
+				},
+				middlewares: middlewares || []
+			},
+			deleteSelection: {
+				method: 'DELETE',
+				path: route + 'deleteSelection',
+				headerKeys: headerKeys || [],
+				option: {
+					path: path + '/deleteSelection',
+					method: 'DELETE',
 					...option
 				},
 				middlewares: middlewares || []
@@ -132,11 +154,11 @@ export class CRUDSelectionUtil extends CRUDUtil {
 					}
 				}
 			}
-			const countSelection = await selectionModel.count({
+			const countSelection = await selectionModel.countDocuments({
 				type,
 				user
 			});
-			const nbLine = await model.count();
+			const nbLine = await model.countDocuments();
 			return {
 				data: {
 					'indeterminate': !!(+countSelection !== +nbLine && countSelection),
@@ -158,7 +180,7 @@ export class CRUDSelectionUtil extends CRUDUtil {
 			}
 			filter = DBUtils.formatMongoDBFilter(filter);
 			const user = inputRequest.body?.user;
-			const counttemplates = await model.count();
+			const counttemplates = await model.countDocuments();
 			await selectionModel.deleteMany({
 				type,
 				user
@@ -176,7 +198,7 @@ export class CRUDSelectionUtil extends CRUDUtil {
 				}));
 			}
 
-			const countSelection = await selectionModel.count({
+			const countSelection = await selectionModel.countDocuments({
 				type,
 				user
 			});

@@ -49,11 +49,11 @@ export class MongoDBSelectionService extends MongoDBService {
 				...DBUtils.skipLimitSortPipeLine(inputRequest, this.defaultSort),
 				...CRUDSelectionUtil.userSelectionPipeline(this.type, userid),
 			]);
-			const countAllLines = await this.model.count();
-			const countSelection = await this.selectionModel.count({
+			const countAllLines = await this.model.countDocuments();
+			const countSelection = await this.selectionModel.countDocuments({
 				type: this.type,
 				user: userid
-			});
+			} as any);
 			return {
 				data: {
 					header: {
@@ -63,7 +63,7 @@ export class MongoDBSelectionService extends MongoDBService {
 					},
 					lines: records
 				},
-				totalCount: await this.model.count({ ...filter })
+				totalCount: await this.model.countDocuments({ ...filter })
 			};
 		} catch (err) {
 			throw err;
