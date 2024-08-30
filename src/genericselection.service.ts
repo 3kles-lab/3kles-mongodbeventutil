@@ -6,8 +6,8 @@ import { CRUDSelectionUtil } from "./crudselection.util";
 
 export class MongoDBSelectionService extends MongoDBService {
 
-	constructor(public model: mongoose.Model<mongoose.Document>,
-		public selectionModel: mongoose.Model<mongoose.Document>,
+	constructor(public model: mongoose.Model<any>,
+		public selectionModel: mongoose.Model<any>,
 		public type: string,
 		public defaultSort: string,
 		public messageEvent: GenericCRUDEvent,
