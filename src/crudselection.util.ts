@@ -99,7 +99,11 @@ export class CRUDSelectionUtil extends CRUDUtil {
 				selection: line?._id,
 				user
 			}).lean();
-
+			let filter: any = {};
+			if (inputRequest.headers.filter) {
+				filter = JSON.parse(inputRequest.headers.filter);
+			}
+			filter = DBUtils.formatMongoDBFilter(filter);
 			let children = [];
 			if (userSelectLine) {
 				await selectionModel.deleteOne({ _id: userSelectLine._id });
@@ -158,7 +162,7 @@ export class CRUDSelectionUtil extends CRUDUtil {
 				type,
 				user
 			});
-			const nbLine = await model.countDocuments();
+			const nbLine = await model.countDocuments(filter);
 			return {
 				data: {
 					'indeterminate': !!(+countSelection !== +nbLine && countSelection),
