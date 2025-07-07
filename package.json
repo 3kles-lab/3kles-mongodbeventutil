@@ -1,6 +1,6 @@
 {
   "name": "@3kles/3kles-mongodbeventutil",
-  "version": "2.0.2",
+  "version": "2.0.3",
   "description": "3KLES MongoDB Util",
   "main": "dist/index.js",
   "typings": "dist/index.d.ts",
@@ -8,8 +8,13 @@
     "type": "git",
     "url": "http://gitlab.3kles.local/3kles/lib/corejs/3kles-mongodbeventutil.git"
   },
-  "keywords": [],
-  "author": "Jeremy Chaut",
+  "keywords": [
+    "3KLES",
+    "Express",
+    "Mongo DB",
+    "Rabbit MQ"
+  ],
+  "author": "3Kles Lab",
   "license": "ISC",
   "bugs": {
     "url": "http://gitlab.3kles.local/3kles/lib/corejs/3kles-mongodbeventutil/issues"
